@@ -1,0 +1,9 @@
+화이팅
+
+
+| 단계     | 접근 방식                        | 목적                   |
+| ------ | ---------------------------- | -------------------- |
+| Step 1 | TF-IDF + Logistic Regression | 베이스라인 확보             |
+| Step 2 | BERT fine-tuning             | 문장 구조와 의미 반영         |
+| Step 3 | LLM (Zero/Few-shot)          | Human-Level 분류 성능 탐색 |
+| Step 4 | GPT 임베딩 → SVM 분류기            | LLM의 표현력 활용          |
