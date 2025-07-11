@@ -4,3 +4,9 @@ data/*.zip
 data/*.csv
 
 __pycache__
+
+
+
+*.pt
+
+*.csv

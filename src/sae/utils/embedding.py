@@ -19,8 +19,13 @@ def get_bert_embeddings(text_list, batch_size=4):
             inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
             
             outputs = model(**inputs)
-            cls_embeddings = outputs.last_hidden_state[:, 0, :]  # [batch_size, hidden_size]
-            
-            embeddings.append(cls_embeddings)
+            last_hidden = outputs.last_hidden_state
+            attention_mask = inputs['attention_mask'].unsqueeze(-1).expand(last_hidden.size())
+            masked_embeddings = last_hidden * attention_mask
+            sum_embeddings = masked_embeddings.sum(1)
+            mean_pooled = sum_embeddings / attention_mask.sum(1)
+            embeddings.append(mean_pooled.cpu())
+        
+            torch.cuda.empty_cache()  # ✅ 메모리 수동 정리
 
     return torch.cat(embeddings, dim=0)

@@ -21,11 +21,11 @@ labels = df["generated"].values
 
 # BERT 임베딩 추출
 features = get_bert_embeddings(texts).to(DEVICE)
-labels = torch.tensor(labels).float().to(DEVICE).unsqueeze(1)
+labels = torch.tensor(labels).long().to(DEVICE)
 
 # 모델 정의
 model = SAEClassifier().to(DEVICE)
-criterion_clf = nn.BCELoss()
+criterion_clf = nn.CrossEntropyLoss()
 criterion_recon = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -43,7 +43,7 @@ for epoch in range(EPOCHS):
     loss.backward()
     optimizer.step()
 
-    acc = accuracy_score(labels.cpu().numpy(), (pred > 0.5).cpu().numpy())
+    acc = accuracy_score(labels.cpu().numpy(), torch.argmax(pred, dim=1).cpu().numpy())
     print(f"Epoch {epoch+1}/{EPOCHS} | Loss: {loss.item():.4f} | Acc: {acc:.4f}")
 
 # 저장
