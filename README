@@ -7,3 +7,103 @@
 | Step 2 | BERT fine-tuning             | 문장 구조와 의미 반영         |
 | Step 3 | LLM (Zero/Few-shot)          | Human-Level 분류 성능 탐색 |
 | Step 4 | GPT 임베딩 → SVM 분류기            | LLM의 표현력 활용          |
+----------------------------------------------------------------
+
+
+좋습니다. 지금까지의 **진행사항**, 앞으로의 **목표**, 그리고 중요 **주의사항**을 구조적으로 정리해드릴게요.
+
+---
+
+## ✅ 진행사항 요약
+
+### 🔹 1. **Baseline 구축**
+
+* 단순 BERT 임베딩 + Linear 분류기로 시작.
+* 정확도: 약 **51.84%** → 문단 단위 학습 불가 + label 누수 우려로 한계 명확.
+
+### 🔹 2. **SAE (Supervised AutoEncoder) 모델 도입**
+
+* 구조: BERT 임베딩 → SAE (인코더 → 디코더 + 분류기)
+* 학습 input: `full_text` 단위 BERT CLS 임베딩
+* SAE 구조 개선: 분류기 + 인코더 depth 확장 및 dropout 적용
+
+### 🔹 3. **학습 개선**
+
+* `class_weight`를 `CrossEntropyLoss`에 적용하여 AI class 탐지 강화
+* GPU OOM 대응: 임베딩 시 batch size 조절 + `empty_cache()`
+* 최종 학습 정확도: **약 93%**, AI f1-score **0.67**까지 향상
+
+### 🔹 4. **학습 최적 epoch 탐색**
+
+* 30 Epoch 실험
+* Epoch 29에서 가장 균형 잡힌 결과 확인:
+
+  * AI class precision: **0.54**
+  * AI class recall: **0.88**
+  * AI class f1-score: **0.67**
+
+단, 실 제출 결과는 epoch 10이 가장 좋았음.
+epoch 20으로 추가 테스트 필요
+---
+
+## 🎯 향후 목표 (진행 예정)
+
+### ✅ 1. **Title-aware Input 구성**
+
+* 단일 문단 대신 `CLS(title) + CLS(paragraph)` 결합
+* → 같은 글 내 문단 간 정보 활용 가능
+
+### ✅ 2. **Latent Space Regularization**
+
+* 방법:
+
+  * **VAE (Variational AutoEncoder)**: 정규분포 latent space 강제
+  * **InfoNCE / Contrastive Learning**: 유사 문단은 유사한 latent vector로
+
+* 기대 효과:
+
+  * AI / Human 임베딩의 분포 분리
+  * 일반화 성능 향상
+
+### ✅ 3. **평가 로직 개선**
+
+* 기존: `argmax`로 하드 결정
+* 변경안:
+
+  * softmax 출력 → soft-label (0\~1) 평균화
+  * → test 문단 간 title 기준 soft voting 가능
+
+---
+
+## ⚠️ 주의사항
+
+| 항목            | 주의 내용                                                |
+| ------------- | ---------------------------------------------------- |
+| **데이터 구조**    | `train.csv`의 label은 **글 단위**, `test.csv`는 **문단 단위**임 |
+| **데이터 누수 방지** | 같은 title 문단은 참조 가능하나 **title 간 정보 공유는 불가**           |
+| **모델 저장**     | SAE 구조 바뀌면 `.pt` 파일은 불일치로 오류 발생함                     |
+| **모델 편향**     | 현재 AI 클래스 비율은 과소, 소수 클래스 학습 신중히 튜닝 필요                |
+| **추론 출력**     | test 결과는 `0/1`이 아니라 **확률값(0.0 \~ 1.0)** 이어야 함        |
+
+---
+
+## 📦 현재 코드 구성 (중요 디렉터리 구조)
+
+```bash
+src/
+├── sae/
+│   ├── model/sae.py               # SAEClassifier 정의
+│   ├── utils/embedding.py        # BERT 임베딩 함수
+│   ├── train/sae_train_dataloader.py  # 학습 코드
+│   ├── inference/sae_predict_dataloader.py  # 추론 코드
+data/
+├── train.csv
+├── test.csv
+├── embedding/features.pt
+├── embedding/labels.pt
+```
+
+---
+
+필요하다면 다음 단계부터는 각 실험별로 **버전 관리** 또는 **결과 시각화**도 도와드릴게요.
+다시 시작하실 때 `title-aware`, `latent regularization` 중 원하는 실험부터 이어서 진행 가능합니다.
